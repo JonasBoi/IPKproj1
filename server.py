@@ -2,6 +2,31 @@ import socket
 import sys
 import re
 
+"""
+    check program argv and return the port number
+"""
+def parse_argv(argv):
+    # kontrola poctu a spravnosti argumentu
+    if len(argv) != 2:
+        print('chybne argumenty')
+        exit(1)
+
+    ser_port = argv[1].split('=', 2)
+    if len(ser_port) != 2:
+        print('chybne argumenty')
+        exit(1)
+    if ser_port[0] != 'PORT':
+        print('chybne argumenty')
+        exit(1)
+
+    # ulozeni cisla portu
+    try:
+        serPort = int(ser_port[1])
+    except (ValueError, TypeError):
+        print('chybne argumenty')
+        exit(1)
+    return ser_port[1]
+
 
 """
     returns the answer to the request
@@ -51,18 +76,22 @@ def op_get(arg):
     if arg[1] != 'type':
         return 400
 
+    req_answer = 400
     if re.match('^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', address):
-        vysledek = socket.gethostbyaddr(address)
-        vysledek = vysledek[0]
-    else:
+        if req_type == 'PTR':
+            req_answer = socket.gethostbyaddr(address)
+            req_answer = req_answer[0]
+        else:
+            return 400
+    elif req_type == 'A':
         try:
-            vysledek = socket.gethostbyname_ex(address)
-            vysledek = vysledek[2]
-            vysledek = vysledek[0]
+            req_answer = socket.gethostbyname_ex(address)
+            req_answer = req_answer[2]
+            req_answer = req_answer[0]
         except (socket.error, socket.herror, socket.gaierror, socket.timeout):
             return 400
 
-    return vysledek
+    return req_answer
 
 
 """
@@ -72,18 +101,13 @@ def op_post(arg):
     return arg
 
 
-# kontrola poctu a spravnosti argumentu
-if len(sys.argv) != 2:
-    print('chybne argumenty')
-    exit(1)
+"""
+--------------
+MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_
+--------------
+"""
 
-serPort = sys.argv[1].split('=', 2)
-if serPort[0] != 'PORT':
-    print('chybne argumenty')
-    exit(1)
-
-# ulozeni cisla portu
-serPort = int(serPort[1])
+serPort = parse_argv(sys.argv)
 
 """
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -106,7 +130,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 
 
 """TESTOVACÍ HODNOTY"""
-mess = 'GET /resolve?name=facebook.com&type=A HTTP/1.1'
+mess = 'GET /resolve?name=apple.com&type=A HTTP/1.1'
 modifMess = parse_request(mess)
 
 if modifMess == 400:
