@@ -22,11 +22,11 @@ def parse_argv(argv):
 
     # ulozeni cisla portu
     try:
-        serPort = int(ser_port[1])
+        ser_port = int(ser_port[1])
     except (ValueError, TypeError):
         print('chybne argumenty')
         exit(1)
-    return ser_port[1]
+    return ser_port
 
 
 """
@@ -131,6 +131,9 @@ def op_post(arg):
     if line[0] != '/dns-query' or line[1] != 'HTTP/1.1':
         return 400
 
+    req_answer = ""
+
+    min_one_answer = False
     count = len(arg)
     i = 1
     while i < count:
@@ -145,41 +148,45 @@ def op_post(arg):
         address = line[0].strip()
         req_type = line[1].strip()
 
+        if req_type != 'A' and req_type != 'PTR':
+            return 400
+
         if re.match('^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', address):
             if req_type == 'PTR':
-                i += 1
-                continue
                 try:
-                    req_answer = socket.gethostbyaddr(address)
+                    answer = socket.gethostbyaddr(address)
                 except (socket.error, socket.herror, socket.gaierror, socket.timeout):
-                    return 404
-                req_answer = req_answer[0]
+                    i += 1
+                    continue
+                answer = answer[0]
                 try:
-                    req_answer = address + ':' + req_type + '=' + req_answer
+                    req_answer += address + ':' + req_type + '=' + answer + '\n'
+                    min_one_answer = True
                 except (ValueError, TypeError):
-                    print("parse_error")
                     return 99
             else:
                 return 400
         # A - REQ
         elif req_type == 'A':
-            i += 1
-            continue
-
             try:
-                req_answer = socket.gethostbyname_ex(address)
+                answer = socket.gethostbyname_ex(address)
             except (socket.error, socket.herror, socket.gaierror, socket.timeout):
-                return 404
-            req_answer = req_answer[2]
-            req_answer = req_answer[0]
+                i += 1
+                continue
+            answer = answer[2]
+            answer = answer[0]
             try:
-                req_answer = address + ':' + req_type + '=' + req_answer
+                req_answer += address + ':' + req_type + '=' + answer + '\n'
+                min_one_answer = True
             except (ValueError, TypeError):
                 print("parse_error")
                 return 99
         i += 1
 
-    return "OK"
+    if not min_one_answer:
+        return 404
+
+    return req_answer
 
 
 """
@@ -211,7 +218,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 
 
 """TESTOVACÍ HODNOTY"""
-messGet = "GET /resolve?name=17.142.160.59&type=PTR HTTP/1.1"
+messGet = "GET /resolve?name=apple.com&type=A HTTP/1.1"
 messPost = "POST /dns-query HTTP/1.1\n" \
            "www.fit.vutbr.cz:A\n" \
            "www.google.com:A\n" \
@@ -228,6 +235,9 @@ if modifMess == 405:
     exit(0)
 if modifMess == 404:
     print('404 Not Found')
+    exit(0)
+if modifMess == 99:
+    print('parse error')
     exit(0)
 
 print(modifMess)
