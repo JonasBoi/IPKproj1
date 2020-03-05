@@ -79,17 +79,26 @@ def op_get(arg):
     req_answer = 400
     if re.match('^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', address):
         if req_type == 'PTR':
-            req_answer = socket.gethostbyaddr(address)
+            try:
+                req_answer = socket.gethostbyaddr(address)
+            except (socket.error, socket.herror, socket.gaierror, socket.timeout):
+                return 404
             req_answer = req_answer[0]
         else:
             return 400
     elif req_type == 'A':
         try:
             req_answer = socket.gethostbyname_ex(address)
-            req_answer = req_answer[2]
-            req_answer = req_answer[0]
         except (socket.error, socket.herror, socket.gaierror, socket.timeout):
-            return 400
+            return 404
+        req_answer = req_answer[2]
+        req_answer = req_answer[0]
+
+    try:
+        req_answer = address + ':' + req_type + '=' + req_answer
+    except (ValueError, TypeError):
+        print ("parse_error")
+        return 99
 
     return req_answer
 
@@ -130,14 +139,17 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 
 
 """TESTOVACÍ HODNOTY"""
-mess = 'GET /resolve?name=apple.com&type=A HTTP/1.1'
+mess = 'GET /resolve?name=17.142.160.59&type=PTR HTTP/1.1'
 modifMess = parse_request(mess)
 
 if modifMess == 400:
-    print('400 Bad request')
+    print('400 Bad Request')
     exit(0)
 if modifMess == 405:
     print('405 Method Not Allowed')
+    exit(0)
+if modifMess == 404:
+    print('404 Not Found')
     exit(0)
 
 print(modifMess)
