@@ -33,17 +33,41 @@ def parse_argv(argv):
     returns the answer to the request
 """
 def parse_request(req):
-    req = req.split(' ')
+    req = req.split('\n')
+    #print (req[0])
+    #return 400
+    req_type = req[0].split()
 
-    if req[0] == 'GET':
-        if len(req) != 3:
+    if req_type[0] == 'GET':
+        if len(req_type) != 3:
             return 400
-        if req[2] != 'HTTP/1.1':
+        if req_type[2] != 'HTTP/1.1':
             return 400
-        req = op_get(req[1])
-    elif req[0] == 'POST':
+        req = op_get(req_type[1])
+
+    elif req_type[0] == 'POST':
+
+        if len(req_type) != 3:
+            return 400
+        if req_type[1] != '/dns-query' or req_type[2] != 'HTTP/1.1':
+            return 400
+
         req.__delitem__(0)
-        req = op_post(" ".join(req))
+
+        while 1:
+            key = req[0].split()
+            if key[0] == "Content-Type:":
+                req.__delitem__(0)
+                break
+
+            req.__delitem__(0)
+
+        #print("\n".join(req))
+        #return 400
+
+        req = op_post("\n".join(req))
+        req = req.rstrip('\n')
+
     else:
         return 405
     return req
@@ -123,13 +147,6 @@ def op_get(arg):
 """
 def op_post(arg):
     arg = arg.split('\n')
-
-    # check the "header"
-    line = arg[0].split()
-    if len(line) != 2:
-        return 400
-    if line[0] != '/dns-query' or line[1] != 'HTTP/1.1':
-        return 400
 
     # initialise the answer
     req_answer = ""
@@ -224,21 +241,22 @@ def op_post(arg):
     adds the header or uses the right error header
 """
 def add_header(modif_mess):
-    answer = "HTTP/1.1 200 OK\n\n"
+    answer = "HTTP/1.1 200 OK\r\n"
+    answer += "\r\n"
 
     if modif_mess == 400:
-        answer = "HTTP/1.1 400 Bad Request"
+        answer = "HTTP/1.1 400 Bad Request\n"
     elif modif_mess == 405:
-        answer = "HTTP/1.1 405 Method Not Allowed"
+        answer = "HTTP/1.1 405 Method Not Allowed\n"
     elif modif_mess == 404:
-        answer = "HTTP/1.1 404 Not Found"
+        answer = "HTTP/1.1 404 Not Found\n"
     elif modif_mess == 99:
         print('parse error')
         exit(0)
     elif modif_mess == "":
-        answer = "HTTP/1.1 404 Not Found"
+        answer = "HTTP/1.1 404 Not Found\n"
     else:
-        answer += modifMess
+        answer += modifMess + "\n"
 
     return answer
 
@@ -251,29 +269,29 @@ MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_MAIN_
 
 serPort = parse_argv(sys.argv)
 
-"""
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-    sock.bind(('', serPort))
+    sock.bind(('localhost', serPort))
     sock.listen()
 
-    conn, clientAddr = sock.accept()
-    with conn:
-        while True:
-            mess = conn.recv(2048)
-            if not mess:
-                break
-            mess = mess.decode()
+    #print("connected")
+    while True:
+        conn, clientAddr = sock.accept()
+        mess = conn.recv(2048)
+        if not mess:
+            break
+        mess = mess.decode()
 
-            modifMess = parse_request(mess)
-            modifMess = add_header(modifMess)
-            modifMess = modifMess.rstrip('\n')
-            modifMess = modifMess.encode()
+        modifMess = parse_request(mess)
+        modifMess = add_header(modifMess)
 
-            conn.sendall(modifMess)
+        modifMess = modifMess.encode()
+
+        conn.sendall(modifMess)
+        conn.close()
 """
 
-
-"""TESTOVACÍ HODNOTY"""
+# TESTOVACÍ HODNOTY
 messGet = "GET /resolve?name=17.142.160.59&type=PTR HTTP/1.1"
 messPost = "POST /dns-query HTTP/1.1\n" \
            "www.fit.vutbr.cz:A\n" \
@@ -320,3 +338,5 @@ modifMess = parse_request(messGet)
 modifMess = add_header(modifMess)
 modifMess = modifMess.rstrip('\n')
 print(modifMess)
+
+"""
