@@ -34,8 +34,6 @@ def parse_argv(argv):
 """
 def parse_request(req):
     req = req.split('\n')
-    #print (req[0])
-    #return 400
     req_type = req[0].split()
 
     if req_type[0] == 'GET':
@@ -61,9 +59,6 @@ def parse_request(req):
                 break
 
             req.__delitem__(0)
-
-        #print("\n".join(req))
-        #return 400
 
         req = op_post("\n".join(req))
         req = req.rstrip('\n')
