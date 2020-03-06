@@ -85,7 +85,7 @@ def op_get(arg):
     """----------------------------------------------
         get host based on the type of request
     """
-    req_answer = 400
+    req_answer = 404
     # PTR - REQ
     if re.match('^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', address):
         if req_type == 'PTR':
@@ -100,7 +100,7 @@ def op_get(arg):
                 print("parse_error")
                 return 99
         else:
-            return 400
+            return 404
     # A - REQ
     elif req_type == 'A':
         try:
@@ -274,7 +274,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 
 
 """TESTOVACÍ HODNOTY"""
-messGet = "GET /resolve?name=apple.com&type=A HTTP/1.1"
+messGet = "GET /resolve?name=17.142.160.59&type=PTR HTTP/1.1"
 messPost = "POST /dns-query HTTP/1.1\n" \
            "www.fit.vutbr.cz:A\n" \
            "www.google.com:A\n" \
@@ -316,7 +316,7 @@ messPost7 = "POST /dns-query HTTP/1.1\n" \
             "www.google.sk:AB\n"
 messPost8 = "POST /dns-query HTTP/1.1"
 
-modifMess = parse_request(messPost4)
+modifMess = parse_request(messGet)
 modifMess = add_header(modifMess)
 modifMess = modifMess.rstrip('\n')
 print(modifMess)
