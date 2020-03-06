@@ -131,26 +131,49 @@ def op_post(arg):
     if line[0] != '/dns-query' or line[1] != 'HTTP/1.1':
         return 400
 
+    # initialise the answer
     req_answer = ""
-
+    # checks if we got at least one result
     min_one_answer = False
+    # checks if we got wrong req type or so
+    syntax_bad = False
+    # number of lines
     count = len(arg)
     i = 1
     while i < count:
+        # ignore the blank lines
         if i == count-1 and arg[i] == "":
-            break
+            if min_one_answer:
+                i += 1
+                continue
+            else:
+                if not syntax_bad:
+                    return 404
+                else:
+                    return 400
+        if i != count-1 and arg[i] == "":
+            i += 1
+            continue
 
+        # get rid of whitespaces and split the string
         line = arg[i].strip()
         line = line.split(':')
         if len(line) != 2:
-            return 400
+            syntax_bad = True
+            i += 1
+            continue
 
+        # get rid of whitespaces
         address = line[0].strip()
         req_type = line[1].strip()
 
+        # badrequest
         if req_type != 'A' and req_type != 'PTR':
-            return 400
+            syntax_bad = True
+            i += 1
+            continue
 
+        # PTR - REQ
         if re.match('^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', address):
             if req_type == 'PTR':
                 try:
@@ -165,7 +188,8 @@ def op_post(arg):
                 except (ValueError, TypeError):
                     return 99
             else:
-                return 400
+                i += 1
+                continue
         # A - REQ
         elif req_type == 'A':
             try:
@@ -183,10 +207,40 @@ def op_post(arg):
                 return 99
         i += 1
 
+    """
+    if we didnt get a single answer for the requests, we chceck if there
+    was also a syntactic fault, if so, we return 400 because its a bigger fault
+    """
     if not min_one_answer:
-        return 404
+        if not syntax_bad:
+            return 404
+        else:
+            return 400
 
     return req_answer
+
+
+"""
+    adds the header or uses the right error header
+"""
+def add_header(modif_mess):
+    answer = "HTTP/1.1 200 OK\n\n"
+
+    if modif_mess == 400:
+        answer = "HTTP/1.1 400 Bad Request"
+    elif modif_mess == 405:
+        answer = "HTTP/1.1 405 Method Not Allowed"
+    elif modif_mess == 404:
+        answer = "HTTP/1.1 404 Not Found"
+    elif modif_mess == 99:
+        print('parse error')
+        exit(0)
+    elif modif_mess == "":
+        answer = "HTTP/1.1 404 Not Found"
+    else:
+        answer += modifMess
+
+    return answer
 
 
 """
@@ -211,6 +265,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             mess = mess.decode()
 
             modifMess = parse_request(mess)
+            modifMess = add_header(modifMess)
+            modifMess = modifMess.rstrip('\n')
             modifMess = modifMess.encode()
 
             conn.sendall(modifMess)
@@ -225,19 +281,42 @@ messPost = "POST /dns-query HTTP/1.1\n" \
            "www.seznam.cz:A\n" \
            "147.229.14.131:PTR\n" \
            "ihned.cz:A\n"
-modifMess = parse_request(messPost)
+messPost2 = "POST /dns-query HTTP/1.1\n" \
+            "www.fit.vutbr.cz:A\n" \
+            "www.google.com:A\n" \
+            "www.brno.cz:A\n" \
+            "www.pornhub.com:A\n" \
+            "34.213.147.57:PTR\n" \
+            "147.229.2.90:PTR\n"
+messPost3 = "POST /dns-query HTTP/1.1\n" \
+           "www.fit.vutbr.cz:PTR\n" \
+            "\n" \
+           "www.google.com:A\n" \
+           "www.brno.cz:A\n" \
+           "www.pornhub.com:A\n" \
+           "34.213.147.57:A\n" \
+           "147.229.2.90:PTR\n" \
+            "\n"            \
+            "\n"
+messPost4 = "POST /dns-query HTTP/1.1\n" \
+            "\n"
+messPost5 = "POST /dns-query HTTP/1.1\n" \
+           "www.fit.vutbr.cz:PTR\n" \
+           "www.google.com:PTR\n" \
+           "www.brno.cz:PTR\n" \
+            "\n" \
+           "www.pornhub.com:PTR\n" \
+           "34.213.147.57:A\n" \
+           "147.229.2.90:PTR\n"
+messPost6 = "POST /dns-query HTTP/1.1\n" \
+           "www.kokotina.czek:A\n" \
+           "www.picovina.skek:A\n"
+messPost7 = "POST /dns-query HTTP/1.1\n" \
+            "www.fit.vutbr.cz:AB\n" \
+            "www.google.sk:AB\n"
+messPost8 = "POST /dns-query HTTP/1.1"
 
-if modifMess == 400:
-    print('400 Bad Request')
-    exit(0)
-if modifMess == 405:
-    print('405 Method Not Allowed')
-    exit(0)
-if modifMess == 404:
-    print('404 Not Found')
-    exit(0)
-if modifMess == 99:
-    print('parse error')
-    exit(0)
-
+modifMess = parse_request(messPost4)
+modifMess = add_header(modifMess)
+modifMess = modifMess.rstrip('\n')
 print(modifMess)
