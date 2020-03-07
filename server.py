@@ -7,22 +7,16 @@ import re
     check program argv and return the port number
 """
 def parse_argv(argv):
+    ser_port = -1
+
     # kontrola poctu a spravnosti argumentu
     if len(argv) != 2:
         print('chybne argumenty')
         exit(1)
 
-    ser_port = argv[1].split('=', 2)
-    if len(ser_port) != 2:
-        print('chybne argumenty')
-        exit(1)
-    if ser_port[0] != 'PORT':
-        print('chybne argumenty')
-        exit(1)
-
     # ulozeni cisla portu
     try:
-        ser_port = int(ser_port[1])
+        ser_port = int(argv[1])
     except (ValueError, TypeError):
         print('chybne argumenty')
         exit(1)
