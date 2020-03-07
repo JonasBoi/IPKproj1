@@ -60,7 +60,10 @@ def parse_request(req):
             req.__delitem__(0)
 
         req = op_post("\n".join(req))
-        req = req.rstrip('\n')
+        try:
+            req = req.rstrip('\n')
+        except:
+            return 400
 
     else:
         return 405
@@ -283,7 +286,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
     sock.listen()
 
     while True:
-        conn, clientAddr = sock.accept()
+        try:
+            conn, clientAddr = sock.accept()
+        except:
+            exit(0)
         mess = conn.recv(2048)
         if not mess:
             break
