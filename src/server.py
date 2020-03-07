@@ -61,7 +61,7 @@ def parse_request(req):
 
         req = op_post("\n".join(req))
         try:
-            req = req.rstrip('\n')
+            req = req.rstrip('\r\n')
         except:
             return 400
 
@@ -173,8 +173,7 @@ def op_post(arg):
                 else:
                     return 400
         if i != count-1 and arg[i] == "":
-            i += 1
-            continue
+            return 400
 
         # get rid of whitespaces and split the string
         line = arg[i].strip()
@@ -206,7 +205,7 @@ def op_post(arg):
                     continue
                 answer = answer[0]
                 try:
-                    req_answer += address + ':' + req_type + '=' + answer + '\n'
+                    req_answer += address + ':' + req_type + '=' + answer + '\r\n'
                     min_one_answer = True
                 except (ValueError, TypeError):
                     return 99
@@ -223,7 +222,7 @@ def op_post(arg):
             answer = answer[2]
             answer = answer[0]
             try:
-                req_answer += address + ':' + req_type + '=' + answer + '\n'
+                req_answer += address + ':' + req_type + '=' + answer + '\r\n'
                 min_one_answer = True
             except (ValueError, TypeError):
                 print("parse_error")
@@ -251,18 +250,18 @@ def add_header(modif_mess):
     answer += "\r\n"
 
     if modif_mess == 400:
-        answer = "HTTP/1.1 400 Bad Request\n"
+        answer = "HTTP/1.1 400 Bad Request\r\n"
     elif modif_mess == 405:
-        answer = "HTTP/1.1 405 Method Not Allowed\n"
+        answer = "HTTP/1.1 405 Method Not Allowed\r\n"
     elif modif_mess == 404:
-        answer = "HTTP/1.1 404 Not Found\n"
+        answer = "HTTP/1.1 404 Not Found\r\n"
     elif modif_mess == 99:
         print('parse error')
         exit(0)
     elif modif_mess == "":
-        answer = "HTTP/1.1 404 Not Found\n"
+        answer = "HTTP/1.1 404 Not Found\r\n"
     else:
-        answer += modifMess + "\n"
+        answer += modifMess + "\r\n"
 
     return answer
 
