@@ -26,6 +26,11 @@ def parse_argv(argv):
     except (ValueError, TypeError):
         print('chybne argumenty')
         exit(1)
+
+    if ser_port < 0 or ser_port > 65535:
+        print('chybne argumenty')
+        exit(1)
+
     return ser_port
 
 
@@ -73,6 +78,9 @@ def parse_request(req):
 """
 def op_get(arg):
 
+    address = ""
+    req_type = ""
+
     """check the request syntax"""
     arg = arg.split('?', 2)
     if len(arg) != 2:
@@ -83,14 +91,12 @@ def op_get(arg):
     arg = arg[1].split('=', 3)
     if len(arg) != 3:
         return 400
-    if arg[0] != 'name':
-        return 400
 
-    if arg[2] != 'A' and arg[2] != 'PTR':
-        return 400
-    else:
+    if arg[0] == 'name':
         # store type request
         req_type = arg[2]
+    elif arg[0] == 'type':
+        address = arg[2]
 
     arg = arg[1]
     arg = arg.split('&', 2)
@@ -98,12 +104,18 @@ def op_get(arg):
         return 400
 
     # store address
-    address = arg[0]
-    if arg[1] != 'type':
+    if address == "":
+        if arg[1] != 'type':
+            return 400
+        address = arg[0]
+    else:
+        req_type = arg[0]
+
+    if req_type != 'A' and req_type != 'PTR':
         return 400
-    """----------------------------------------------
-        get host based on the type of request
-    """
+
+    # ----------------------------------------------
+    # get host based on the type of request
     req_answer = 404
     # PTR - REQ
     if re.match('^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', address):
@@ -185,6 +197,8 @@ def op_post(arg):
             i += 1
             continue
 
+        # ----------------------------------------------
+        # get host based on the type of request
         # PTR - REQ
         if re.match('^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', address):
             if req_type == 'PTR':
@@ -266,10 +280,14 @@ serPort = parse_argv(sys.argv)
 
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-    sock.bind(('localhost', serPort))
+
+    try:
+        sock.bind(('localhost', serPort))
+    except socket.error:
+        print("bind failed")
+        exit(1)
     sock.listen()
 
-    #print("connected")
     while True:
         conn, clientAddr = sock.accept()
         mess = conn.recv(2048)
