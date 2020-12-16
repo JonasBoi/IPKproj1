@@ -1,8 +1,5 @@
 # 1. projekt do predmetu IPK (FIT VUT)  
 hodnocení : 20b  
-**Jméne:** Jonáš Sasín  
-**Login:** xsasin05  
-**Datum:** 7.3.2020  
 **Zvolený jazyk**: Python  
 
 "Implementace severu, který komunikuje protokolem HTTP a zajišťuje překlad doménových jmen."
